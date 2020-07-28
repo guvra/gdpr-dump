@@ -12,12 +12,17 @@ class TableDependencyResolver
     /**
      * @var MetadataInterface
      */
-    private $metadata;
+    private MetadataInterface $metadata;
 
     /**
      * @var ForeignKey[][]
      */
-    private $foreignKeys;
+    private array $foreignKeys = [];
+
+    /**
+     * @var bool
+     */
+    private bool $resolved = false;
 
     /**
      * @param MetadataInterface $metadata
@@ -49,7 +54,7 @@ class TableDependencyResolver
     {
         $this->buildDependencyTree();
 
-        return $this->resolveDependencies($tableName);
+        return $this->getDependencies($tableName);
     }
 
     /**
@@ -64,7 +69,7 @@ class TableDependencyResolver
 
         $dependencies = [];
         foreach ($tableNames as $tableName) {
-            $dependencies = $this->resolveDependencies($tableName, $dependencies);
+            $dependencies = $this->getDependencies($tableName, $dependencies);
         }
 
         return $dependencies;
@@ -74,14 +79,14 @@ class TableDependencyResolver
      * Recursively fetch all dependencies related to a table.
      *
      * @param string $tableName
-     * @param array $resolved
+     * @param array $dependencies
      * @return array
      */
-    private function resolveDependencies(string $tableName, array $resolved = []): array
+    private function getDependencies(string $tableName, array $dependencies = []): array
     {
         // No foreign key to this table
         if (!isset($this->foreignKeys[$tableName])) {
-            return $resolved;
+            return $dependencies;
         }
 
         $foreignKeys = $this->foreignKeys[$tableName];
@@ -94,11 +99,11 @@ class TableDependencyResolver
                 continue;
             }
 
-            $resolved[$dependencyTable][$tableName] = $foreignKey;
-            $resolved = $this->resolveDependencies($dependencyTable, $resolved);
+            $dependencies[$dependencyTable][$tableName] = $foreignKey;
+            $dependencies = $this->getDependencies($dependencyTable, $dependencies);
         }
 
-        return $resolved;
+        return $dependencies;
     }
 
     /**
@@ -106,7 +111,7 @@ class TableDependencyResolver
      */
     private function buildDependencyTree(): void
     {
-        if ($this->foreignKeys !== null) {
+        if ($this->resolved) {
             return;
         }
 
@@ -120,5 +125,7 @@ class TableDependencyResolver
                 $this->foreignKeys[$foreignTableName][] = $foreignKey;
             }
         }
+
+        $this->resolved = true;
     }
 }

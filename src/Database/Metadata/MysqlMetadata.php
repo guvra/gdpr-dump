@@ -12,12 +12,12 @@ class MysqlMetadata implements MetadataInterface
     /**
      * @var Connection
      */
-    private $connection;
+    private Connection $connection;
 
     /**
      * @var string
      */
-    private $schema;
+    private string $schema;
 
     /**
      * @param Connection $connection
