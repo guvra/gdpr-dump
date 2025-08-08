@@ -6,75 +6,93 @@ namespace Smile\GdprDump\Config;
 
 final class Config implements ConfigInterface
 {
+    private object $root;
+
     public function __construct(private array $items = [])
     {
+        $this->reset($items);
     }
 
     public function get(string $key, mixed $default = null): mixed
     {
-        return $this->has($key) ? $this->items[$key] : $default;
+        return $this->has($key) ? $this->root->$key : $default;
     }
 
     public function set(string $key, mixed $value): self
     {
-        $this->items[$key] = $value;
+        $this->root->{$key} = $value;
 
         return $this;
     }
 
     public function has(string $key): bool
     {
-        return array_key_exists($key, $this->items);
+        return property_exists($this->root, $key);
     }
 
-    public function toArray(): array
+    public function getRoot(): object
     {
-        return $this->items;
+        return clone $this->root;
     }
 
     public function reset(array $items = []): self
     {
-        $this->items = $items;
+        $this->root = (object) $items;
 
         return $this;
     }
 
-    public function merge(array $data): self
+    public function merge(ConfigInterface $config): self
     {
-        $this->items = $this->mergeArray($this->items, $data);
+        $root = $this->getRoot(); // get a cloned root
+        $this->mergeObjects($root, $config->getRoot());
+        $this->root = $root;
+
+        return $this;
+    }
+
+    public function extend(ConfigInterface $config): self
+    {
+        $root = $config->getRoot(); // get a clone root
+        $this->mergeObjects($root, $this->root);
+        $this->root = $root;
 
         return $this;
     }
 
     /**
-     * Merge two arrays.
+     * Merge two objects. Properties of nested objects are merged, other types are replaced (scalar, array...).
      */
-    private function mergeArray(array $data, array $override): array
+    private function mergeObjects(object $object, object $override): void
     {
-        foreach ($override as $key => $value) {
-            if (array_key_exists($key, $data)) {
-                if (is_array($value) && is_array($data[$key])) {
-                    // Merge values
-                    $data[$key] = $this->mergeArray($data[$key], $value);
-
-                    // If a key of the array was unset and the array is empty as a result, unset it
-                    // This is necessary because JSON schema validation does not allow empty array as object values
-                    if ($value && !$data[$key]) {
-                        unset($data[$key]);
-                    }
-                } elseif ($value === null && is_array($data[$key])) {
-                    // Remove array key (allows to remove an existing config item by setting it to null)
-                    unset($data[$key]);
-                } else {
-                    // Overwrite value
-                    $data[$key] = $value;
-                }
-            } else {
-                // Value not present in result array, append it
-                $data[$key] = $value;
+        foreach ($override as $property => $value) {
+            if (!property_exists($object, $property)) {
+                // New property, add it to the existing object
+                $object->{$property} = $value;
+                continue;
             }
-        }
 
-        return $data;
+            if (is_object($object->{$property})) {
+                if (is_object($value)) {
+                    // Merge values of the two objects
+                    $this->mergeObjects($object->{$property}, $value);
+
+                    // If the merged object is empty, remove it (generates a cleaner config)
+                    if (/*(array) $value && */!((array) $object->{$property})) {
+                        unset($object->{$property});
+                    }
+                    continue;
+                }
+
+                if ($value === null) {
+                    // Allow object removal by setting the value to null
+                    unset($object->{$property});
+                    continue;
+                }
+            }
+
+            // Overwrite existing value
+            $object->{$property} = $value;
+        }
     }
 }

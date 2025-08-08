@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Smile\GdprDump\Config\Loader;
 
+use Smile\GdprDump\Config\Config;
 use Smile\GdprDump\Config\ConfigException;
 use Smile\GdprDump\Config\ConfigInterface;
 use Symfony\Component\Yaml\Yaml;
@@ -39,24 +40,24 @@ final class ConfigLoader implements ConfigLoaderInterface
         }
 
         try {
-            $data = Yaml::parse($input);
+            $data = Yaml::parse($input, Yaml::PARSE_OBJECT_FOR_MAP);
         } catch (Throwable $e) {
             throw new ParseException('Unable to parse the YAML input.', $e);
         }
 
-        if (!is_array($data)) {
-            throw new ParseException(sprintf('The file "%s" could not be parsed into an array.', $fileName));
+        if (!is_object($data)) {
+            throw new ParseException(sprintf('The file "%s" could not be parsed into an object.', $fileName));
         }
 
         // Recursively load parent config files
-        if (isset($data['extends'])) {
-            $fileNames = (array) $data['extends'];
+        if (property_exists($data, 'extends')) {
+            $fileNames = (array) $data->extends;
             $currentDirectory = dirname($fileName);
             $this->loadParentFiles($fileNames, $config, $currentDirectory);
-            unset($data['extends']);
+            unset($data->extends);
         }
 
-        $config->merge($data);
+        $config->merge(new Config((array) $data));
     }
 
     /**

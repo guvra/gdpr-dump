@@ -22,9 +22,9 @@ interface ConfigInterface
     public function has(string $key): bool;
 
     /**
-     * Get the configuration data.
+     * Get the root item.
      */
-    public function toArray(): array;
+    public function getRoot(): object;
 
     /**
      * Reset the config items.
@@ -32,7 +32,15 @@ interface ConfigInterface
     public function reset(array $items): self;
 
     /**
-     * Merge the config data with another set of items.
+     * Merge the items of this config with the items of the specified config.
+     *
+     * Objects properties are merged recursively, array and scalar values are replaced.
      */
-    public function merge(array $data): self;
+    //public function merge(object $object): self;
+    public function merge(ConfigInterface $config): self;
+
+    /**
+     * Same as merge but reversed (config items are overridden).
+     */
+    public function extend(ConfigInterface $config): self;
 }

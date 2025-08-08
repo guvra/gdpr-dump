@@ -64,7 +64,7 @@ final class DumpCommand extends Command
             $config = $this->loadConfig($input);
 
             // Validate the config data
-            $result = $this->validator->validate($config->toArray());
+            $result = $this->validator->validate($config);
             if (!$result->isValid()) {
                 $this->outputValidationResult($result, $output);
                 return Command::FAILURE;
@@ -124,7 +124,8 @@ final class DumpCommand extends Command
      */
     private function addInputOptionsToConfig(ConfigInterface $config, InputInterface $input): void
     {
-        $databaseConfig = (array) $config->get('database', []);
+        $databaseConfig = $config->get('database') ?? new \stdClass();
+        $changed = false;
 
         foreach (['host', 'port', 'user', 'password', 'database'] as $option) {
             $value = $input->getOption($option);
@@ -136,7 +137,7 @@ final class DumpCommand extends Command
             if ($value === '') {
                 if ($option === 'password') {
                     // Remove the password from the config if an empty value was provided
-                    unset($databaseConfig['password']);
+                    unset($databaseConfig->{$password});
                     continue;
                 }
 
@@ -146,10 +147,11 @@ final class DumpCommand extends Command
 
             // Override the config value with the provided option value
             $configKey = $option === 'database' ? 'name' : $option;
-            $databaseConfig[$configKey] = $value;
+            $databaseConfig->{$configKey} = $value;
+            $changed = true;
         }
 
-        if ($databaseConfig) {
+        if ($changed) {
             $config->set('database', $databaseConfig);
         }
     }

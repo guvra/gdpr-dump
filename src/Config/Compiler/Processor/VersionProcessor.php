@@ -7,6 +7,7 @@ namespace Smile\GdprDump\Config\Compiler\Processor;
 use Smile\GdprDump\Config\Compiler\CompileException;
 use Smile\GdprDump\Config\Compiler\Processor\Version\MissingVersionException;
 use Smile\GdprDump\Config\Compiler\Processor\Version\VersionMatcher;
+use Smile\GdprDump\Config\Config;
 use Smile\GdprDump\Config\ConfigInterface;
 
 final class VersionProcessor implements ProcessorInterface
@@ -20,7 +21,7 @@ final class VersionProcessor implements ProcessorInterface
     {
         $requiresVersion = (bool) $config->get('requires_version');
         $version = (string) $config->get('version');
-        $versionsData = (array) $config->get('if_version');
+        $versionsData = (object) $config->get('if_version');
 
         if ($version === '') {
             // Check if version is mandatory
@@ -39,7 +40,7 @@ final class VersionProcessor implements ProcessorInterface
         // Merge version-specific data into the configuration
         foreach ($versionsData as $requirement => $versionData) {
             if ($versionMatcher->match($requirement, $version)) {
-                $config->merge($versionData);
+                $config->merge(new Config($versionData));
             }
         }
     }

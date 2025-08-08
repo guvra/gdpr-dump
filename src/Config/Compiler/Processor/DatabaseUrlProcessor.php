@@ -17,9 +17,8 @@ final class DatabaseUrlProcessor implements ProcessorInterface
      */
     public function process(ConfigInterface $config): void
     {
-        $data = $config->toArray();
-        $data['database'] = $this->processDatabaseNode($data['database']);
-        $config->reset($data);
+        $databaseSettings = (object) $config->get('database');
+        $this->processDatabaseNode($databaseSettings);
     }
 
     /**
@@ -27,13 +26,13 @@ final class DatabaseUrlProcessor implements ProcessorInterface
      *
      * @throws CompileException
      */
-    private function processDatabaseNode(array $database): array
+    private function processDatabaseNode(object $database): void
     {
-        $url = (string) ($database['url'] ?? '');
-        unset($database['url']);
+        $url = (string) ($database->url ?? '');
+        unset($database->url);
 
         if ($url === '') {
-            return $database;
+            return;
         }
 
         // Validate url
@@ -64,14 +63,12 @@ final class DatabaseUrlProcessor implements ProcessorInterface
             }
 
             $value = (string) $parsedUrl[$urlPart];
-            $database[$dbParam] = match ($dbParam) {
+            $database->{$dbParam} = match ($dbParam) {
                 'name' => ltrim($value, '/'),
                 'driver' => $this->getDriverByScheme($value),
                 default => $value
             };
         }
-
-        return $database;
     }
 
     /**

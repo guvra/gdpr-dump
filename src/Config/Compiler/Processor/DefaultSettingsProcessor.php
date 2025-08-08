@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Smile\GdprDump\Config\Compiler\Processor;
 
+use stdClass;
+use Smile\GdprDump\Config\Config;
 use Smile\GdprDump\Config\ConfigInterface;
+use Smile\GdprDump\Database\DatabaseInterface;
 
 final class DefaultSettingsProcessor implements ProcessorInterface
 {
@@ -13,32 +16,22 @@ final class DefaultSettingsProcessor implements ProcessorInterface
      */
     public function process(ConfigInterface $config): void
     {
-        $data = $config->toArray();
-        $data += [
-            'database' => [],
-            'dump' => [],
-            'faker' => [],
-            'filter_propagation' => [],
-            'tables_whitelist' => [],
-            'tables_blacklist' => [],
-            'tables' => [],
-            'variables' => [],
-        ];
-
-        foreach ($this->getDefaultSettings() as $key => $value) {
-            $data[$key] += $value;
-        }
-
-        $config->reset($data);
+        $defaultConfig = new Config($this->getDefaultSettings());
+        $config->extend($defaultConfig);
     }
 
     /**
      * Get default settings.
+     *
+     * @return array<string, array<string, mixed>>
      */
     private function getDefaultSettings(): array
     {
         return [
-            'dump' => [
+            'database' => (object) [
+                'driver' => DatabaseInterface::DRIVER_MYSQL,
+            ],
+            'dump' => (object) [
                 'output' => 'php://stdout',
                 'add_drop_database' => false,
                 'add_drop_table' => true, // false in MySQLDump-PHP
@@ -65,13 +58,17 @@ final class DefaultSettingsProcessor implements ProcessorInterface
                 'skip_triggers' => false,
                 'skip_tz_utc' => false,
             ],
-            'filter_propagation' => [
+            'faker' => (object) [
+                'locale' => '',
+            ],
+            'filter_propagation' => (object) [
                 'enabled' => true,
                 'ignored_foreign_keys' => [],
             ],
-            'faker' => [
-                'locale' => '',
-            ],
+            'tables' => (object) [],
+            'tables_whitelist' => [],
+            'tables_blacklist' => [],
+            'variables' => (object) [],
         ];
     }
 }

@@ -32,37 +32,55 @@ final class EnvVarProcessor implements ProcessorInterface
      */
     public function process(ConfigInterface $config): void
     {
-        $data = $this->processItem($config->toArray());
-        $config->reset($data);
+        $data = $this->processObject($config->getRoot());
+        $config->reset((array) $data);
     }
 
     /**
-     * Process a config item.
-     *
-     * @throws CompileException
+     * Process an array.
      */
-    private function processItem(array $data): array
+    private function processArray(array $array): array
     {
-        foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                $data[$key] = $this->processItem($value);
-                continue;
-            }
-
-            $data[$key] = $this->processValue($value);
+        foreach ($array as $key => $value) {
+            $array[$key] = $this->processItem($value);
         }
 
-        return $data;
+        return $array;
     }
 
     /**
-     * Process a config value.
+     * Process an object.
+     */
+    private function processObject(object $object): object
+    {
+        foreach ($object as $property => $value) {
+            $object->$property = $this->processItem($value);
+        }
+
+        return $object;
+    }
+
+    /**
+     * Process an item of unknown type.
+     */
+    private function processItem(mixed $value): mixed
+    {
+        return match (true) {
+            is_object($value) => $this->processObject($value),
+            is_array($value) => $this->processArray($value),
+            is_string($value) => $this->processValue($value),
+            default => $value,
+        };
+    }
+
+    /**
+     * Process a string value.
      *
      * @throws CompileException
      */
-    private function processValue(mixed $value): mixed
+    private function processValue(string $value): mixed
     {
-        if (!is_string($value) || !str_starts_with($value, '%env(') || !str_ends_with($value, ')%')) {
+        if (!str_starts_with($value, '%env(') || !str_ends_with($value, ')%')) {
             return $value;
         }
 

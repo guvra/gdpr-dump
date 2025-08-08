@@ -111,6 +111,10 @@ final class Kernel
 
         $container->addCompilerPass(new RegisterListenersPass(), PassConfig::TYPE_BEFORE_REMOVING);
         $container->addCompilerPass(new ConverterAliasPass());
+        //$container->addCompilerPass(new SerializerPass());
+        //$this->addCompilerPassIfExists($container, AddConsoleCommandPass::class, PassConfig::TYPE_BEFORE_REMOVING);
+        //$this->addCompilerPassIfExists($container, AddValidatorInitializersPass::class);
+        //$this->addCompilerPassIfExists($container, AddConstraintValidatorsPass::class);
 
         $container->setParameter('app_root', $basePath);
         $container->register('event_dispatcher', EventDispatcher::class);

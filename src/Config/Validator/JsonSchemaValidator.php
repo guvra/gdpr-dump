@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Smile\GdprDump\Config\Validator;
 
 use JsonSchema\Validator;
+use Smile\GdprDump\Config\ConfigInterface;
 use Throwable;
 
 final class JsonSchemaValidator implements ValidatorInterface
@@ -21,18 +22,14 @@ final class JsonSchemaValidator implements ValidatorInterface
         $this->schemaFile = $schemaFile;
     }
 
-    public function validate(mixed $data): ValidationResultInterface
+    public function validate(ConfigInterface $config): ValidationResultInterface
     {
         $validator = $this->getValidator();
 
-        // Automatically convert associative arrays to stdClass (required for object validation)
-        if (is_array($data)) {
-            $data = json_decode((string) json_encode($data));
-        }
-
         // Validate the data against the schema file
         try {
-            $validator->validate($data, (object) ['$ref' => $this->schemaFile]);
+            $root = $config->getRoot();
+            $validator->validate($root, (object) ['$ref' => $this->schemaFile]);
         } catch (Throwable $e) {
             throw new ValidationException($e->getMessage(), $e);
         }

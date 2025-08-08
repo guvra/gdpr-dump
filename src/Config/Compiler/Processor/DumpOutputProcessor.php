@@ -14,9 +14,8 @@ final class DumpOutputProcessor implements ProcessorInterface
      */
     public function process(ConfigInterface $config): void
     {
-        $dumpSettings = (array) $config->get('dump');
-        $dumpSettings['output'] = $this->processDatePlaceholder((string) $dumpSettings['output']);
-        $config->set('dump', $dumpSettings);
+        $dumpSettings = (object) $config->get('dump');
+        $dumpSettings->output = $this->processDatePlaceholder((string) $dumpSettings->output);
     }
 
     /**
